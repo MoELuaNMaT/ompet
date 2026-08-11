@@ -1,0 +1,23 @@
+# 依赖与构建产物
+node_modules/
+dist/
+extension/node_modules/
+previews/cache/
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+
+# 内部文档（不公开）
+project_memory/
+PROJECT_OVERVIEW.md
+OMPet Implementation-Ready Refactor Specification.md
+OMP_Pet_动画状态机与状态同步方案.docx
+
+# 宠物素材（版权未确认，不随仓库分发）
+remilia/
+elaina-2/
+
+# 环境与日志
+.env*
+*.log

@@ -1,0 +1,239 @@
+/* 悬浮窗：透明背景 + 无边框，整窗可拖拽（data-tauri-drag-region）；
+   宠物区绝对定位锚定窗口底部，气泡列位于宠物顶部之上、向上生长 */
+:root {
+  --bubble-bg: rgba(20, 22, 30, 0.85);
+  --bubble-fg: #e8eaf2;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  /* 定位上下文 = 视口（窗口高度）；宠物区绝对定位锚定底部 */
+  height: 100%;
+  position: relative;
+}
+
+/* 气泡列（预留式触发）：缩略区在上、预留行在下（底部紧贴宠物）。
+   行内间隙 pointer-events:none 落到底层可拖窗；交互区域只有 .bubble-slot。
+   四周 padding 为状态发光预留完整显示空间（orb glow 扩散半径最大 24px；
+   box-shadow 不参与布局，不加 padding 会被窗口/宠物画布裁掉）：
+   顶部/左右 24px（orb 向上/向侧发光），底部 12px（胶囊向下发光，
+   也是气泡与宠物的真实间距——bubbles 锚定宠物顶部，BUBBLE_GAP_PX 只影响窗口高度） */
+#bubbles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 24px 24px 12px;
+  pointer-events: none;
+}
+
+/* 缩略区：所有缩略气泡（圆球 slot）横向排列，超宽向上堆叠（wrap-reverse） */
+#bubble-shelf {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap-reverse;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+/* 预留行：展开气泡专属位（底部一行，紧贴宠物）。
+   单进程时固定显示胶囊；多进程时悬停的缩略气泡下移到这里展开，默认空 */
+#bubble-expanded {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  pointer-events: none;
+}
+
+/* 缩略占位 slot：固定 28×28 触发区域，hover 检测挂在这里（不随气泡移动，
+   气泡下移展开/收回时鼠标悬停状态稳定，无抖动循环） */
+.bubble-slot {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+/* 气泡基类：双形态共用（胶囊 .capsule / 圆球 .orb），状态色由 s-* 类决定。
+   box-sizing:border-box 保证高度一致（28px 含边框） */
+.bubble {
+  box-sizing: border-box;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  background: var(--bubble-bg);
+  color: var(--bubble-fg);
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border: 1px solid color-mix(in srgb, var(--c, #8b93a5) 40%, transparent);
+  /* width 不在此过渡：形态宽度由 JS morph 的 inline transition 全权控制（避免双路冲突） */
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s;
+}
+
+/* 状态图标（圆球形态主体；胶囊形态也保留小图标） */
+.b-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--c, #8b93a5);
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 胶囊形态（预留行）：任务名 + 状态文字，附轻度状态色轮廓光 */
+.bubble.capsule {
+  flex: 0 0 auto;
+  height: 28px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    0 0 10px 2px color-mix(in srgb, var(--c, #8b93a5) 35%, transparent);
+}
+.b-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.b-status {
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/* 圆球形态（缩略 slot 内）：只显示状态图标，隐藏文字。
+   轮廓光：状态色发光 ring（覆盖基类黑色投影），暗背景下凸显存在 */
+.bubble.orb {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--c, #8b93a5) 80%, transparent),
+    0 0 8px 2px color-mix(in srgb, var(--c, #8b93a5) 50%, transparent),
+    0 0 18px 6px color-mix(in srgb, var(--c, #8b93a5) 22%, transparent);
+}
+.bubble.orb .b-name,
+.bubble.orb .b-status {
+  display: none;
+}
+
+/* 状态色与图标 */
+.s-working {
+  --c: #3b82f6;
+}
+.s-working .b-icon {
+  /* 运行中：蓝色转圈 */
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: bubble-spin 0.9s linear infinite;
+}
+.s-waiting {
+  --c: #f59e0b;
+}
+.s-waiting .b-icon::before {
+  content: "!";
+  font-weight: 700;
+}
+.s-done {
+  --c: #22c55e;
+}
+.s-done .b-icon::before {
+  content: "✓";
+  font-weight: 700;
+  animation: bubble-done-flash 1s ease-in-out 2;
+}
+.s-idle {
+  --c: #6b7280;
+}
+.s-idle .b-icon::before {
+  content: "·";
+}
+
+@keyframes bubble-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bubble-done-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* 待机（idle）气泡弱化（按气泡级别） */
+body:not(.busy) .bubble.s-idle {
+  opacity: 0.5;
+}
+
+/* 宠物区：绝对定位锚定窗口底部（窗口高度变化时宠物位置不动，只向上扩展气泡区） */
+#pet-area {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* 宠物画布：保持帧比例（192:208）铺满宠物区宽度（=窗口宽度；窗口高度由 main.ts 自适应），
+   后备缓冲区由 main.ts 按显示盒尺寸同步，避免默认 300×150 拉伸变形 */
+#pet {
+  display: block;
+  width: 100%;
+  aspect-ratio: 192 / 208;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* 缩放拖拽手柄：宠物左上角（缩放锚点=窗口右下角，手柄跟随鼠标移动），鼠标悬浮窗口时淡入；nwse-resize 光标提示对角拖拽 */
+#scale-handle {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  z-index: 10;
+  cursor: nwse-resize;
+  border-radius: 4px;
+  background: rgba(20, 22, 30, 0.55);
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#scale-handle::after {
+  /* ↘ 角标（左上角手柄，向右下拖放大 / 向左上拖缩小） */
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid rgba(232, 234, 242, 0.9);
+  border-bottom: 2px solid rgba(232, 234, 242, 0.9);
+}
+body:hover #scale-handle {
+  opacity: 1;
+}

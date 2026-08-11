@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ompet</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- 宠物区：绝对定位锚定窗口底部（宠物位置不随窗口高度变化）；气泡列位于其顶部之上、
+         向上生长。气泡交互为"预留式触发"：底部固定一行预留位（展开气泡专属），
+         缩略气泡排在预留位上方；悬停某缩略气泡 → 它下移到预留位展开，移开立即缩回，
+         排他（同一时刻只展开一个）。hover 检测挂在固定 slot 上，与移动的气泡元素解耦 -->
+    <div id="pet-area">
+      <!-- 气泡列：缩略区（#bubble-shelf，向上堆叠）+ 预留行（#bubble-expanded，底部）。
+           pointer-events:none 让行内间隙落到底层（可拖窗）；交互区域只有 .bubble-slot -->
+      <div id="bubbles">
+        <div id="bubble-shelf"></div>
+        <div id="bubble-expanded"></div>
+      </div>
+      <!-- 宠物渲染画布（SpriteAnimator Canvas 直绘 spritesheet；整窗拖拽由 main.ts 手动实现，
+           不用 data-tauri-drag-region——系统拖拽会吞掉 click，导致无法点击） -->
+      <canvas id="pet" alt=""></canvas>
+      <!-- 缩放拖拽手柄：宠物左上角（鼠标悬浮窗口时显示，CSS hover 淡入），按住向右下/左上拖拽缩放
+           宠物视窗（锁定 192:208 比例，锚点=窗口右下角；pointerdown stopPropagation 隔离窗口拖拽） -->
+      <div id="scale-handle" title="拖拽缩放宠物"></div>
+    </div>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

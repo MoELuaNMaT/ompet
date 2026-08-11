@@ -1,0 +1,18 @@
+{
+  "name": "ompet",
+  "version": "0.2.0",
+  "private": true,
+  "description": "OMPet (Oh My Pi) 宠物插件：桌面悬浮宠物 + TUI 宠物选择/行映射配置（Architecture V2）",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "build": "bun scripts/build-extension.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.7.0"
+  }
+}

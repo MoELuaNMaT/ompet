@@ -1,0 +1,17 @@
+{
+  "name": "ompet-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run dev-server.ts",
+    "build": "cp src/index.html src/styles.css dist/ && bun build src/main.ts --outdir dist --minify",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
